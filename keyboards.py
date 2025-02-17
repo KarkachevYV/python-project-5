@@ -7,13 +7,21 @@ main = ReplyKeyboardMarkup(keyboard=[
 ], resize_keyboard=True)
 
 inline_keyboard_test = InlineKeyboardMarkup(inline_keyboard=[
-   [InlineKeyboardButton(text="Видео", url='https://www.youtube.com/watch?v=epLg__rBZ38')]
+   [InlineKeyboardButton(text="Каталог", callback_data='catalog')],
+   [InlineKeyboardButton(text="Новости", callback_data='news')],
+   [InlineKeyboardButton(text="Профиль", callback_data='profile')],
 ])
 
 test = ["кнопка 1", "кнопка 2", "кнопка 3", "кнопка 4"]
 
+# async def test_keyboard():
+#    keyboard = ReplyKeyboardBuilder()
+#    for key in test:
+#      keyboard.add(KeyboardButton(text=key))
+#    return keyboard.adjust(2).as_markup()
+
 async def test_keyboard():
-   keyboard = ReplyKeyboardBuilder()
+   keyboard = InlineKeyboardBuilder()
    for key in test:
-     keyboard.add(KeyboardButton(text=key))
+     keyboard.add(InlineKeyboardButton(text=key, url='https://www.youtube.com/watch?v=epLg__rBZ38'))
    return keyboard.adjust(2).as_markup()

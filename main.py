@@ -52,6 +52,8 @@ async def help_cmd(message: Message):
 
 @router.message(CommandStart())
 async def start(message: Message):
+    # await message.answer(f'Приветики, {message.from_user.first_name}', reply_markup=kb.main)
+    # await message.answer(f'Здравствуй, {message.from_user.first_name}', reply_markup=kb.inline_keyboard_test)
     await message.answer(f'Hi, {message.from_user.full_name}', reply_markup=await kb.test_keyboard())
 
 

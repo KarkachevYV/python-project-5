@@ -11,6 +11,7 @@ from aiogram.fsm.state import State, StatesGroup
 from config import API_TOKEN, WEATHER_API_KEY
 import random
 from googletrans import Translator 
+import keyboards as kb 
 
 
 bot = Bot(token=API_TOKEN)
@@ -51,7 +52,7 @@ async def help_cmd(message: Message):
 
 @router.message(CommandStart())
 async def start(message: Message):
-    await message.answer(f'Hi, {message.from_user.full_name}')
+    await message.answer(f'Hi, {message.from_user.full_name}', reply_markup=await kb.test_keyboard())
 
 
 # Определяем состояние

@@ -58,15 +58,43 @@ async def news(callback: CallbackQuery):
 
 @router.message(CommandStart())
 async def start(message: Message):
-    # await message.answer(f'Приветики, {message.from_user.first_name}', reply_markup=kb.main)
-    await message.answer(f'Здравствуй, {message.from_user.first_name}', reply_markup=kb.inline_keyboard_test)
+    await message.answer(f'Приветики, {message.from_user.first_name}', reply_markup=kb.main)
+    # await message.answer(f'Здравствуй, {message.from_user.first_name}', reply_markup=kb.inline_keyboard_test)
     # await message.answer(f'Hi, {message.from_user.full_name}', reply_markup=await kb.test_keyboard())
 
-
-@router.message(F.text == "Тестовая кнопка 1")
+@router.message(F.text == "Привет")
 async def test_button(message: Message):
-    await message.answer('Обработка на нажатие на Reply кнопку.')
+    await message.answer(f'Привет,{message.from_user.full_name}')
 
+
+@router.message(F.text == "Пока")
+async def test_button(message: Message):
+    await message.answer(f'Пока,{message.from_user.full_name}')
+
+
+# @router.message(F.text == "Тестовая кнопка 1")
+# async def test_button(message: Message):
+#     await message.answer('Обработка на нажатие на Reply кнопку.')
+
+# @router.message(Command("links"))
+# async def weather_cmd(message: Message, state: FSMContext):
+#     await message.answer(f'Здравствуй, {message.from_user.first_name}', reply_markup=kb.inline_keyboard_test)
+
+# Обработчик команды /dinamic
+@router.message(Command("dinamic"))
+async def dynamic_cmd(message: Message):
+    await message.answer(f'Hi, {message.from_user.first_name}', reply_markup=kb.inline_keyboard_test)
+
+# Обработчик нажатия на кнопку "Показать больше"
+@router.callback_query(F.data == "further")
+async def further(callback: CallbackQuery):
+    await callback.message.edit_text('Смотреть дальше:', reply_markup=await kb.test_keyboard())
+
+# Обработчики нажатий на кнопки "Опция 1" и "Опция 2"
+@router.callback_query(F.data.in_({"Опция 1", "Опция 2"}))
+async def option_selected(callback: CallbackQuery):
+    await callback.answer()
+    await callback.message.answer(f'Вы выбрали {callback.data}')
 
 # Определяем состояние
 class WeatherState(StatesGroup):

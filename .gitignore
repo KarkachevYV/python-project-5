@@ -3,6 +3,7 @@ config.py
 *.mp4
 *.mp3
 *.ogg
+*.db
 
 # Byte-compiled / optimized / DLL files
 __pycache__/

@@ -8,11 +8,11 @@ from aiogram.filters import CommandStart, Command
 from aiogram.types import Message, FSInputFile, CallbackQuery
 from aiogram.fsm.context import FSMContext
 from aiogram.fsm.state import State, StatesGroup
-from config import API_TOKEN, WEATHER_API_KEY
+from config import API_TOKEN, WEATHER_API_KEY, THE_CAT_API_KEY
 import random
 from googletrans import Translator 
 import keyboards as kb 
-
+import requests
 
 bot = Bot(token=API_TOKEN)
 dp = Dispatcher()
@@ -20,6 +20,11 @@ dp = Dispatcher()
 router = Router()
 
 translator = Translator()  # Создаем экземпляр переводчика
+
+# Определяем состояние для перевода
+class TranslateState(StatesGroup):
+    waiting_for_text = State()
+
 
 async def main():
      # Регистрация всех маршрутов
@@ -46,7 +51,10 @@ async def help_cmd(message: Message):
         "📌 /photo — рандомное (случайное) фото.\n" 
         "📌 /audio — Загрузить аудио.\n"
         "📌 /video — Загрузить видео.\n"
-        "📌 /training — Загрузить видео.\n"
+        "📌 /training — Загрузить сообщение.\n"
+        "📌 /links — Пример обычных кнопок.\n"
+        "📌 /dinamic — Пример динамических инлайн кнопок.\n"
+        "📌 /cats— Всё о кошках.\n"
     )
     await message.answer(help_text)
 
@@ -96,7 +104,58 @@ async def option_selected(callback: CallbackQuery):
     await callback.answer()
     await callback.message.answer(f'Вы выбрали {callback.data}')
 
-# Определяем состояние
+
+def get_cat_breeds():
+   url = "https://api.thecatapi.com/v1/breeds"
+   headers = {"x-api-key": THE_CAT_API_KEY}
+   response = requests.get(url, headers=headers)
+   return response.json()
+
+def get_cat_image_by_breed(breed_id):
+     url = f"https://api.thecatapi.com/v1/images/search?breed_ids={breed_id}"
+     headers = {"x-api-key": THE_CAT_API_KEY}
+     response = requests.get(url, headers=headers)
+     data = response.json()
+     return data[0]['url']
+
+def get_breed_info(breed_name):
+   breeds = get_cat_breeds()
+   for breed in breeds:
+        if breed['name'].lower() == breed_name.lower():
+            # Переводим описание породы на русский
+            description_ru = translator.translate(breed['description'], dest='ru').text
+            return {
+                'name': breed['name'],
+                'description': description_ru,
+                'life_span': breed['life_span'],
+                'id': breed['id']
+            }
+   return None
+
+@router.message(Command("cats"))
+async def cats(message: Message):
+   await message.answer("Привет! Напиши мне название породы кошки, и я пришлю тебе её фото и описание.")
+
+
+@router.message()
+async def send_cat_info(message: Message):
+   translated = translator.translate(message.text, dest='en')
+   breed_name = translated.text
+   breed_info = get_breed_info(breed_name)
+   if breed_info:
+       cat_image_url = get_cat_image_by_breed(breed_info['id'])
+       info = (
+           f"Порода - {breed_info['name']}\\n"
+           f"Описание - {breed_info['description']}\\n"
+           f"Продолжительность жизни - {breed_info['life_span']} лет"
+       )
+       await message.answer_photo(photo=cat_image_url, caption=info)
+   else:
+       await message.answer("Порода не найдена. Попробуйте еще раз.")
+
+
+#
+#  Определяем состояние
 class WeatherState(StatesGroup):
     waiting_for_city = State()
 
@@ -196,7 +255,6 @@ async def voice(message: Message):
 async def doc(message: Message):
     doc = FSInputFile("karkach_bot.pdf")
     await bot.send_document(message.chat.id, doc)
-
 
 @router.message(F.text)
 async def translate_text(message: Message):

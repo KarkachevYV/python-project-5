@@ -8,11 +8,12 @@ from aiogram.filters import CommandStart, Command
 from aiogram.types import Message, FSInputFile, CallbackQuery
 from aiogram.fsm.context import FSMContext
 from aiogram.fsm.state import State, StatesGroup
-from config import API_TOKEN, WEATHER_API_KEY, THE_CAT_API_KEY
+from config import API_TOKEN, WEATHER_API_KEY, THE_CAT_API_KEY, NASA_API_KEY
 import random
 from googletrans import Translator 
 import keyboards as kb 
 import requests
+from datetime import datetime, timedelta
 
 bot = Bot(token=API_TOKEN)
 dp = Dispatcher()
@@ -54,7 +55,9 @@ async def help_cmd(message: Message):
         "📌 /training — Загрузить сообщение.\n"
         "📌 /links — Пример обычных кнопок.\n"
         "📌 /dinamic — Пример динамических инлайн кнопок.\n"
-        "📌 /cats— Всё о кошках.\n"
+        "📌 /cats — О породах в общих чертах.\n"
+        "📌 /random_apod — Сюрприз от NASA.\n"
+        
     )
     await message.answer(help_text)
 
@@ -154,6 +157,24 @@ async def send_cat_info(message: Message):
        await message.answer("Порода не найдена. Попробуйте еще раз.")
 
 
+def get_random_apod():
+   end_date = datetime.now() # конечная дата - сегодня
+   start_date = end_date - timedelta(days=365)
+   random_date = start_date + (end_date - start_date) * random.random()
+   date_str = random_date.strftime("%Y-%m-%d")
+
+   url = f'https://api.nasa.gov/planetary/apod?api_key={NASA_API_KEY}&date={date_str}'
+   response = requests.get(url)
+   return response.json()
+
+@dp.message(Command("random_apod"))
+async def random_apod(message: Message):
+   apod = get_random_apod()
+   photo_url = apod['url']
+  #  title = apod['title']
+   title_ru = translator.translate(apod['title'], dest='ru').text
+
+   await message.answer_photo(photo=photo_url, caption=f"{title_ru}")
 #
 #  Определяем состояние
 class WeatherState(StatesGroup):

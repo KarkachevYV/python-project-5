@@ -10,6 +10,8 @@ main = ReplyKeyboardMarkup(keyboard=[
     [KeyboardButton(text="Привет"), KeyboardButton(text="Пока")]
 ], resize_keyboard=True)
 
+
+
 # inline_keyboard_test = InlineKeyboardMarkup(inline_keyboard=[
 #    [InlineKeyboardButton(text="Каталог", callback_data='catalog')],
 #    [InlineKeyboardButton(text="Новости", callback_data='news')],
@@ -52,3 +54,4 @@ async def test_keyboard():
 #    for key in test:
 #      keyboard.add(InlineKeyboardButton(text=key, url='https://www.youtube.com/watch?v=epLg__rBZ38'))
 #    return keyboard.adjust(2).as_markup()
+

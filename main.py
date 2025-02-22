@@ -4,21 +4,24 @@ import aiohttp
 from gtts import gTTS
 import os
 from aiogram import Bot, Dispatcher, types, Router, F
-from aiogram.filters import CommandStart, Command
+from aiogram.filters import CommandStart, Command, BaseFilter
 from aiogram.types import Message, FSInputFile, CallbackQuery
 from aiogram.fsm.context import FSMContext
 from aiogram.fsm.state import State, StatesGroup
-from config import API_TOKEN, WEATHER_API_KEY, THE_CAT_API_KEY, NASA_API_KEY
+from aiogram.fsm.storage.memory import MemoryStorage
+from config import API_TOKEN, WEATHER_API_KEY, THE_CAT_API_KEY, NASA_API_KEY, DADATA_API_KEY
 import random
 from googletrans import Translator 
 import keyboards as kb 
 import requests
 from datetime import datetime, timedelta
+from dadata import Dadata
 
 bot = Bot(token=API_TOKEN)
 dp = Dispatcher()
 
 router = Router()
+storage = MemoryStorage()
 
 translator = Translator()  # Создаем экземпляр переводчика
 
@@ -29,11 +32,13 @@ class TranslateState(StatesGroup):
 
 async def main():
      # Регистрация всех маршрутов
+    dp = Dispatcher(storage=storage)
     dp.include_router(router)
 
     print("🚀 Бот запущен! Нажмите Ctrl + C для выхода.")
 
     try:
+        await bot.delete_webhook(drop_pending_updates=True)
         await dp.start_polling(bot)
     finally:
         await bot.session.close()
@@ -57,6 +62,7 @@ async def help_cmd(message: Message):
         "📌 /dinamic — Пример динамических инлайн кнопок.\n"
         "📌 /cats — О породах в общих чертах.\n"
         "📌 /random_apod — Сюрприз от NASA.\n"
+        "📌 /dadata - Общая информация о стране"
         
     )
     await message.answer(help_text)
@@ -108,53 +114,53 @@ async def option_selected(callback: CallbackQuery):
     await callback.message.answer(f'Вы выбрали {callback.data}')
 
 
-def get_cat_breeds():
-   url = "https://api.thecatapi.com/v1/breeds"
-   headers = {"x-api-key": THE_CAT_API_KEY}
-   response = requests.get(url, headers=headers)
-   return response.json()
+# def get_cat_breeds():
+#    url = "https://api.thecatapi.com/v1/breeds"
+#    headers = {"x-api-key": THE_CAT_API_KEY}
+#    response = requests.get(url, headers=headers)
+#    return response.json()
 
-def get_cat_image_by_breed(breed_id):
-     url = f"https://api.thecatapi.com/v1/images/search?breed_ids={breed_id}"
-     headers = {"x-api-key": THE_CAT_API_KEY}
-     response = requests.get(url, headers=headers)
-     data = response.json()
-     return data[0]['url']
+# def get_cat_image_by_breed(breed_id):
+#      url = f"https://api.thecatapi.com/v1/images/search?breed_ids={breed_id}"
+#      headers = {"x-api-key": THE_CAT_API_KEY}
+#      response = requests.get(url, headers=headers)
+#      data = response.json()
+#      return data[0]['url']
 
-def get_breed_info(breed_name):
-   breeds = get_cat_breeds()
-   for breed in breeds:
-        if breed['name'].lower() == breed_name.lower():
-            # Переводим описание породы на русский
-            description_ru = translator.translate(breed['description'], dest='ru').text
-            return {
-                'name': breed['name'],
-                'description': description_ru,
-                'life_span': breed['life_span'],
-                'id': breed['id']
-            }
-   return None
+# def get_breed_info(breed_name):
+#    breeds = get_cat_breeds()
+#    for breed in breeds:
+#         if breed['name'].lower() == breed_name.lower():
+#             # Переводим описание породы на русский
+#             description_ru = translator.translate(breed['description'], dest='ru').text
+#             return {
+#                 'name': breed['name'],
+#                 'description': description_ru,
+#                 'life_span': breed['life_span'],
+#                 'id': breed['id']
+#             }
+#    return None
 
-@router.message(Command("cats"))
-async def cats(message: Message):
-   await message.answer("Привет! Напиши мне название породы кошки, и я пришлю тебе её фото и описание.")
+# @router.message(Command("cats"))
+# async def cats(message: Message):
+#    await message.answer("Привет! Напиши мне название породы кошки, и я пришлю тебе её фото и описание.")
 
 
-@router.message()
-async def send_cat_info(message: Message):
-   translated = translator.translate(message.text, dest='en')
-   breed_name = translated.text
-   breed_info = get_breed_info(breed_name)
-   if breed_info:
-       cat_image_url = get_cat_image_by_breed(breed_info['id'])
-       info = (
-           f"Порода - {breed_info['name']}\\n"
-           f"Описание - {breed_info['description']}\\n"
-           f"Продолжительность жизни - {breed_info['life_span']} лет"
-       )
-       await message.answer_photo(photo=cat_image_url, caption=info)
-   else:
-       await message.answer("Порода не найдена. Попробуйте еще раз.")
+# @router.message()
+# async def send_cat_info(message: Message):
+#    translated = translator.translate(message.text, dest='en')
+#    breed_name = translated.text
+#    breed_info = get_breed_info(breed_name)
+#    if breed_info:
+#        cat_image_url = get_cat_image_by_breed(breed_info['id'])
+#        info = (
+#            f"Порода - {breed_info['name']}\\n"
+#            f"Описание - {breed_info['description']}\\n"
+#            f"Продолжительность жизни - {breed_info['life_span']} лет"
+#        )
+#        await message.answer_photo(photo=cat_image_url, caption=info)
+#    else:
+#        await message.answer("Порода не найдена. Попробуйте еще раз.")
 
 
 def get_random_apod():
@@ -175,7 +181,69 @@ async def random_apod(message: Message):
    title_ru = translator.translate(apod['title'], dest='ru').text
 
    await message.answer_photo(photo=photo_url, caption=f"{title_ru}")
-#
+
+
+class TextFilter(BaseFilter):
+    def __init__(self, text: str, ignore_case: bool = False):
+        self.text = text.lower() if ignore_case else text
+        self.ignore_case = ignore_case
+
+    async def __call__(self, message: Message) -> bool:
+        message_text = message.text.lower() if self.ignore_case else message.text
+        return message_text == self.text
+
+async def fetch_country_info(country_name):
+    url = "https://suggestions.dadata.ru/suggestions/api/4_1/rs/suggest/country"
+    headers = {
+        "Content-Type": "application/json",
+        "Accept": "application/json",
+        "Authorization": f"Token {DADATA_API_KEY}"
+    }
+    data = {"query": country_name}
+
+    async with aiohttp.ClientSession() as session:
+        async with session.post(url, json=data, headers=headers) as response:
+            if response.status == 200:
+                result = await response.json()
+                return result['suggestions']
+            else:
+                return None
+
+@router.message(Command("dadata"))
+async def send_welcome(message: Message):
+    await message.reply("Привет! Напиши название страны, и я постараюсь найти информацию о ней.")
+
+@router.message(TextFilter(text='страны', ignore_case=True))
+async def list_countries(message: Message):
+    await message.reply("Напишите название страны, чтобы получить информацию о ней.")
+
+# @router.message()
+# async def get_country_info(message: Message, state: FSMContext):
+#     # translated = translator.translate(message.text, dest='en')
+#     country_name = message.text
+#     suggestions = await fetch_country_info(country_name)
+#     if suggestions:
+#         response = "\n".join([sug['value'] for sug in suggestions])
+#         await message.reply(f"Информация о стране:\n{response}")
+#     else:
+#         await message.reply("Не удалось найти информацию о данной стране.")
+@router.message()
+async def get_country_info(message: Message, state: FSMContext):
+    country_name = message.text
+    suggestions = await fetch_country_info(country_name)
+    if suggestions:
+        response_lines = []
+        for suggestion in suggestions:
+            value = suggestion.get('unrestricted_value', 'Неизвестно')
+            code = suggestion.get('data', {}).get('code', 'Нет данных')
+            iso_code = suggestion.get('data', {}).get('iso_code', 'Нет данных')
+            response_lines.append(f"Страна: {value}, Код: {code}, ISO Код: {iso_code}")
+        
+        response = "\n".join(response_lines)
+        await message.reply(f"Информация о стране:\n{response}")
+    else:
+        await message.reply("Не удалось найти информацию о данной стране.")
+
 #  Определяем состояние
 class WeatherState(StatesGroup):
     waiting_for_city = State()

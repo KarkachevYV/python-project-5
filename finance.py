@@ -63,6 +63,7 @@ async def setup_db():
         )
     ''')
     await db.commit()
+    await db.close()  # Закрываем соединение
     print("✅ База данных инициализирована.")
 
 async def get_db():
@@ -119,19 +120,6 @@ async def exchange_rates(message: Message):
             eur_to_rub = data["Valute"]["EUR"]["Value"]
 
             await message.answer(f"💵 1 USD = {usd_to_rub:.2f} RUB\n💶 1 EUR = {eur_to_rub:.2f} RUB")
-
-# Основная функция запуска бота
-async def main():
-    await setup_db()
-    dp.include_router(router)
-
-    print("🚀 Бот запущен! Нажмите Ctrl + C для выхода.")
-    try:
-        await bot.delete_webhook(drop_pending_updates=True)
-        await dp.start_polling(bot)
-    finally:
-        await bot.session.close()
-        print("✅ Сессия бота закрыта.")
 
 @router.message(F.text == "Советы по экономии")
 async def send_tips(message: Message):
@@ -224,13 +212,25 @@ async def finances(message: Message, state: FSMContext):
    db = await get_db()
    await db.execute('''UPDATE users SET category1 = ?, expenses1 = ?, category2 = ?, expenses2 = ?, category3 = ?, expenses3 = ?, category4 = ?, expenses4 = ?, category5 = ?, expenses5 = ? WHERE telegram_id = ?''',
                   (data['category1'], data['expenses1'], data['category2'], data['expenses2'], data['category3'], data['expenses3'], data['category4'], data['expenses4'], data['category5'], data["expenses5"], telegram_id))
-   await db.commit()
-   await db.close() # Закрываем соединение после работы
-  
+   await db.commit() 
 
    await message.answer("Категории и расходы сохранены!")
+   await db.close() # Закрываем соединение после работы
+   await state.clear()
 
+# Основная функция запуска бота
+async def main():
+    await setup_db()
+    dp.include_router(router)
 
+    print("🚀 Бот запущен! Нажмите Ctrl + C для выхода.")
+    try:
+        await bot.delete_webhook(drop_pending_updates=True)
+        await dp.start_polling(bot)
+    finally:
+        dp.shutdown()
+        await bot.session.close()
+        print("✅ Сессия бота закрыта.")
 
 # Запуск
 if __name__ == "__main__":

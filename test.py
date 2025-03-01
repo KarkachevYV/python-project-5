@@ -1,31 +1,42 @@
 #test.py
-import unittest
-from main_test import add, subtract, multiply, divide, remnant
+import pytest
+from main_test import  check, is_palindrome, sort_list
 
-class TestMath(unittest.TestCase):
-  def test_add(self):
-      self.assertEqual(add(2, 5),7)
-      self.assertEqual(add(3, 7), 9)
+def test_check():
+    assert check(6) == True
 
-  def test_subtract(self):
-      self.assertEqual(subtract(7, 4), 3)
-      self.assertEqual(subtract(4, 2), 1)
+def test_check2():
+   assert check(3) == False
 
-  def test_multiply(self):
-    self.assertEqual(multiply(2, 5), 12)
-    self.assertEqual(multiply(3, 6), 18)
+@pytest.mark.parametrize("number, expected", [
+   (2, True),
+   (5, False),
+   (0, True),
+   (56, True),
+   (-3, False)
+])
 
-  def test_divide(self):
-      self.assertEqual(divide(5, 2), 4)
-      self.assertEqual(divide(20, 5), 4)
+def test_check_with_param(number, expected):
+   assert check(number) == expected
 
-  def test_remnant(self):
-      self.assertEqual(remnant(10, 2), 3)
-      self.assertEqual(remnant(20, 5), 0)
+def test_isPalindrome_true():
+    assert is_palindrome('madam') == True
 
-  def test_remnant_by_zero(self):
-      self.assertRaises(ValueError, remnant, 6, 0)  
-      self.assertRaises(TypeError, remnant, 6, 0)
+def test_isPalindrome_false():
+    assert is_palindrome('hello') == False
 
-if __name__ == '__main__':
-		unittest.main()
+@pytest.mark.parametrize("test_input, expected", [
+    ('level', True),
+    ('python', False),
+    ('racecar', True),
+    ('', True),
+])
+def test_isPalindrome(test_input, expected):
+    assert is_palindrome(test_input) == expected
+
+
+def test_sort1():
+    assert sort_list([-1, 3, 0, -2, 2]) == [-2, -1, 0, 2, 3]
+
+def test_sort2():
+    assert sort_list([5, 6, 3, 1, 2]) == [1, 2, 3, 5, 6]
